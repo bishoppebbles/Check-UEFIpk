@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    Checks for the PKfail UEFI vulnerability identified by Binarly REsearch.
+    Checks a domain environment for the PKfail UEFI vulnerability identified by Binarly REsearch.
 .DESCRIPTION
     This script checks an Active Directory domain environment for the PKfail UEFI vulnerability.  It specifically looks for an exposed UEFI test Platform Key (PK) key that was deployed to a large swatch of production systems.  For AD environments that have PowerShell remoting constrained language mode, it alternatively uses an ASCII hash table lookup to properly decode and the search the PK.
 .PARAMETER OUName
@@ -44,13 +44,14 @@ param (
     [Parameter(ParameterSetName='Migrated', Mandatory=$True, HelpMessage='Switch to change the search type for AD migrated systems')]
     [Switch]$Migrated,
 
-    [Parameter(ParameterSetName='Migrated', Mandatory=$True, HelpMessage='Domain controller server')]
+    [Parameter(ParameterSetName='Migrated', Mandatory=$True, HelpMessage='The distinguished name path')]
     [string]$SearchBase = '',
 
     [Parameter(ParameterSetName='Migrated', Mandatory=$True, HelpMessage='Domain controller server')]
     [string]$Server = ''
 )
 
+# build parameter options for splatting depending on the desired search environment
 if ($migrated) {
 
     $computersArgs = @{
@@ -109,6 +110,7 @@ Invoke-Command -Session (Get-PSSession) -ScriptBlock {
 
         $compInfo = Get-ComputerInfo
 
+        # perform byte-to-ASCII lookup
         if($compInfo.BiosFirmwareType -like "Uefi") {
             (Get-SecureBootUEFI PK).bytes | 
                 ForEach-Object {
@@ -119,8 +121,10 @@ Invoke-Command -Session (Get-PSSession) -ScriptBlock {
                     }
                 }
 
+            # join all the converted ASCII characters into a single string
             $joined = $strBuilder -join ''
 
+            # search the string for the vulnerable PKs, the 'f' indicates it used the ASCII lookup table for data conversion
             if ($joined -match "DO NOT TRUST|DO NOT SHIP") {
                 $Vulnerable = 'True (f)'
             } else {
@@ -135,11 +139,12 @@ Invoke-Command -Session (Get-PSSession) -ScriptBlock {
         }
     }
 
-
+    # check if the environment is using PowerShell's contrained language mode, if so, then use the local lookup table for ASCII conversion
     if($ExecutionContext.SessionState.LanguageMode -like "FullLanguage") {
         
         $compInfo = Get-ComputerInfo
 
+        # only check a system if it has UEFI, not BIOS (avoids calls throwing errors), the 'n' indiates that the native ASCII.GetString() method was used
         if($compInfo.BiosFirmwareType -like "Uefi") {
             # One line PowerShell check written by Binarly REsearch
             if([System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI PK).bytes) -match "DO NOT TRUST|DO NOT SHIP") {
