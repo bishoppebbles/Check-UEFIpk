@@ -8,7 +8,7 @@
 .PARAMETER Migrated
     Switch to use if computer objects have migrated to a different domain
 .PARAMETER SearchBase
-    The distinguised name path to use for computer object searching
+    The distinguished name path to use for computer object searching
 .PARAMETER Server
     The server to use for the target domain
 .EXAMPLE
