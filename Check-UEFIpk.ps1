@@ -24,7 +24,7 @@
 
     Run with the OUName parameter to specific a target OU of interest.
 .EXAMPLE
-    .\Check-UEFIpk.ps1 -OUName Manila -Migrated -SearchBase -SearchBase 'ou=computer,ou=location,dc=company,dc=org' -Server 'company.org'
+    .\Check-UEFIpk.ps1 -OUName Manila -Migrated -SearchBase 'ou=computer,ou=location,dc=company,dc=org' -Server 'company.org'
 
     Run with the OUName parameter and the Migrated switch to specific a target OU location of interest.  You must also specify the SearchBase and Server to use for the query.
 .NOTES
